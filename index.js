@@ -1,60 +1,42 @@
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 
-async function run() {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.goto('https://www.traversymedia.com');
+async function getSiteCSS(url) {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
 
-  //  Get a screenshot of the page
-  // await page.screenshot({ path: 'example.png', fullPage: true });
+    await page.goto(url);
 
-  //  Get a PDF of the page
-  // await page.pdf({ path: 'example.pdf', format: 'A4' });
+    // Extract CSS content directly on the page
+    const cssContent = await page.evaluate(() => {
+        const stylesheets = Array.from(document.styleSheets);
+        let cssText = '';
 
-  //  Get HTML of the page
-  // const html = await page.content();
+        stylesheets.forEach((stylesheet) => {
+            try {
+                const rules = Array.from(stylesheet.cssRules);
+                rules.forEach((rule) => {
+                    cssText += rule.cssText + '\n';
+                });
+            } catch (error) {
+                // Handle errors or skip problematic stylesheets
+                console.error('Error reading stylesheet:', error.message);
+            }
+        });
 
-  //  Get text of the page
-  // const title = await page.evaluate(() => document.title);
+        return cssText;
+    });
 
-  //  Get text of the page
-  // const text = await page.evaluate(() => document.body.innerText);
+    console.log(cssContent);
 
-  //  Get all links
-  // const links = await page.evaluate(() =>
-  //   Array.from(document.querySelectorAll('a'), (e) => e.href)
-  // );
+    fs.writeFile('css.json', JSON.stringify(cssContent), (err) => {
+        if (err) throw err;
+        console.log('File saved');
+    });
 
-  //  Get courses
-  // const courses = await page.evaluate(() =>
-  //   Array.from(document.querySelectorAll('#courses .card'), (e) => ({
-  //     title: e.querySelector('.card-body h3').innerText,
-  //     level: e.querySelector('.card-body .level').innerText,
-  //     url: e.querySelector('.card-footer a').href,
-  //     promo: e.querySelector('.card-footer .promo-code .promo').innerText,
-  //   }))
-  // );
-
-  // Get courses using $$eval
-  const courses = await page.$$eval('#courses .card', (elements) =>
-    elements.map((e) => ({
-      title: e.querySelector('.card-body h3').innerText,
-      level: e.querySelector('.card-body .level').innerText,
-      url: e.querySelector('.card-footer a').href,
-      promo: e.querySelector('.card-footer .promo-code .promo').innerText,
-    }))
-  );
-
-  console.log(courses);
-
-  // Save data to JSON file
-  fs.writeFile('courses.json', JSON.stringify(courses), (err) => {
-    if (err) throw err;
-    console.log('File saved');
-  });
-
-  await browser.close();
+    await browser.close();
 }
 
-run();
+// Replace 'https://example.com' with the desired URL
+getSiteCSS('https://www.swcg.com');
+
